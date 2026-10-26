@@ -1,0 +1,26 @@
+﻿meter_id,serial_no,display_name,status,zone_id,zone_name,latitude,longitude,installed_on,last_seen,last_reading,last_reading_unit,meter_type
+MTR-0001,SN-0001,Gandhi Nagar Feeder,Active,ZN-N1,Yelahanka,12.93800,77.54000,2025-01-10,2026-03-01T10:15:00+05:30,120.5,kWh,Smart
+MTR-0002,SN-0002,Yelahanka Main,Active,ZN-N1,Yelahanka,12.95600,77.54000,2025-02-11,2026-03-01 10:15:00,98.2,kWh,Smart
+MTR-0003,SN-0003,Hebbal Industrial,active,ZN-N1,Yelahanka,12.97400,77.54000,2025-03-12,01/03/2026 10:15,67.8,kWh,Legacy
+MTR-0004,SN-0004,Jayanagar 4th Block,FAULT,ZN-N1,Yelahanka,12.99200,77.54000,2025-04-13,2026-02-28T23:59:00+05:30,0,kWh,Smart
+MTR-0004,SN-0004-B,Jayanagar 4th Block,ACTIVE,ZN-N1,Yelahanka,12.99200,77.54000,2025-04-13,2026-02-28T23:59:00+05:30,0,kWh,Smart
+MTR-0005,SN-0005,Whitefield Tech Park,Inactive,ZN-N1,Yelahanka,13.01000,77.54000,2025-05-14,2026-02-28T18:00:00+05:30,45.0,kWh,Smart
+MTR-0006,SN-0006,MG Road Commercial,1,ZN-N2,Hebbal,13.02800,77.54000,2025-06-15,2026-03-01T09:00:00+05:30,310.2,kWh,Legacy
+MTR-0007,SN-0007,Koramangala 5th Block,0,ZN-N2,Hebbal,13.04600,77.54000,2025-07-16,2026-02-20T07:45:00+05:30,0,kWh,Smart
+MTR-0008,SN-0008,Indiranagar 100ft,N/A,ZN-N2,Hebbal,,,2025-08-17,N/A,N/A,kWh,Smart
+MTR-0009,SN-0009,Malleshwaram West,,ZN-N2,Hebbal,13.08200,77.54000,2025-09-18,2026-03-01T08:00:00+05:30,-,kWh,Legacy
+MTR-0010,N/A,Rajajinagar Block 2,ACTIVE,ZN-N2,Hebbal,12.92000,77.57500,2025-10-19,2026-03-01T11:00:00+05:30,76.4,kWh,Smart
+ MTR-0011 , SN-0011 ,,active,ZN-S1,Jayanagar,12.93800,77.57500,2025-11-20,2026-03-01T12:00:00+05:30,88.0,kWh,Smart
+MTR-0012,SN-0012,JP Nagar Phase 6,Active,ZN-S1,Jayanagar,12.95600,77.57500,01/03/2026,2026-03-01T13:00:00+05:30,99.5,kWh,Legacy
+MTR-0013,SN-0013,Bellandur Lake View,Active,ZN-S1,Jayanagar,12.97400,77.57500,1 Mar 26,2026-03-01T14:00:00+05:30,120.0,kWh,Smart
+MTR-0014,SN-0014,Sarjapur Road,Active,ZN-E1,Whitefield,12.99200,77.57500,2026-01-05,2026-03-01T15:00:00+05:30,"1,24,500",kWh,Smart
+MTR-0015,SN-0015,Electronic City Phase 1,Active,ZN-E1,Whitefield,13.01000,77.57500,2026-01-06,2026-03-01T16:00:00+05:30,124.50 kWh,,Legacy
+MTR-0016,SN-0016,HSR Layout Sector 2,ACTIVE,ZN-E1,Whitefield,13.02800,77.57500,2026-01-07,2026-03-01T17:00:00+05:30,"1.234,56",kWh,Smart
+MTR-0017,SN-0017,Island Substation,Active,ZN-ISLAND,Island Zone,13.04600,77.57500,2026-01-08,2026-03-01T18:00:00+05:30,"12,5",kW,Smart
+MTR-0018,SN-0018,Orphan Pump House,Fault,ZN-ORPHAN,Orphan Feeder,13.06400,77.57500,2026-13-40,2026-13-40T00:00:00,N/A,kWh,Legacy
+MTR-0019,SN-0019,Cycle Industrial,Inactive,ZN-CYC-A,Cycle A,13.08200,77.57500,2026-01-10,2026-03-01T19:00:00+05:30,33.3,kWh,Smart
+MTR-0020,SN-0020,Unmapped Layout,ACTIVE,ZN-404,Unmapped,,,2026-01-11,2026-03-01T20:00:00+05:30,44.4,kWh,Smart
+MTR-0021,SN-0021,N/A,Active,ZN-ROOT,Bengaluru Network,,,2026-01-12,2026-03-01T21:00:00+05:30,55.5,kWh,Legacy
+MTR-0022,sn-0022,Peenya Industrial,ACTIVE,ZN-ROOT,Bengaluru Network,12.95600,77.61000,2026-02-30,2026-03-01T22:00:00+05:30,66.6,kWh,Smart
+MTR-0023,SN-0023,Dasarahalli Feeder,Active,ZN-ROOT,Bengaluru Network,12.97400,77.61000,2026-01-14,2026-03-01T23:00:00+05:30,77.7,kWh,Smart
+MTR-0024,SN-0024,Kengeri Township,Active,ZN-ROOT,Bengaluru Network,12.99200,77.61000,2026-01-15,2026-03-02T00:00:00+05:30,-,kWh,Legacy

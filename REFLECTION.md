@@ -1,0 +1,31 @@
+# Reflection
+
+## 1. Assumptions
+
+The largest assumption was forced on me: the real Urja portal was not reachable, so I could not do the DevTools recon the brief asks for. I treated that as a design constraint rather than a reason to stop. I built a deterministic mock portal with a CSRF form login, cookie session, three different expiry signals, a bulk CSV export, server-rendered list/detail/hierarchy pages, and an XHR consumption endpoint, then wrote the adapter against that contract. `PROTOCOL.md` marks each row as **Observed** in the mock or **ASSUMED** for the real portal; that distinction is the most important honesty control in the submission.
+
+On top of that, I assumed: one shared operator account and one process; portal timestamps are `Asia/Kolkata` when naive; ambiguous `DD/MM/YYYY` input is day-first; the bulk export is authoritative for list fields and detail pages for detail-only fields; coordinates are WGS84 when present; the hierarchy is small enough to rebuild from a cached flat table; and the mock's defect set is representative enough to drive the normalization rules. Each assumption is visible in code, tests, or `PROTOCOL.md`, and each one is a place where real recon could invalidate the implementation.
+
+## 2. Hardest part and how I got unstuck
+
+The hardest part was session recovery, not parsing. The portal can signal expiry three ways: `401` on the consumption XHR, `303 /login` on the CSV export, and the classic legacy trap of `200 OK` whose body is the login form. A naive `raise_for_status()` plus retry would either miss expiry entirely or stampede the login endpoint when ten requests notice it at once. I centralized detection in one function, `is_session_expired`, and made `PortalSession.request` the only path to the portal. Re-authentication takes a lock, re-checks a generation counter, logs in once, and retries the original request exactly once. I proved it with a mock `/_control/expire` endpoint and a test that fires ten concurrent requests and asserts exactly one new login.
+
+The second-hardest part was resisting the urge to silently clean data. Duplicate ids, conflicting list/detail values, invalid dates, decimal commas, negative consumption and orphan hierarchy nodes all invite convenient "fixes" that hide the portal's condition. I pushed each decision through an explicit normalizer rule and a `quality_flags` value, then wrote table-driven tests for the messy cases. That made the system slower to write but much easier to explain and defend.
+
+## 3. What I would do with another day
+
+First, I would do the real reconnaissance and replace every **ASSUMED** row in `PROTOCOL.md` with evidence: cookies, form fields, pagination quirks, the actual export columns, the consumption endpoint's timezone behavior, and the real expiry signals. I would capture a handful of sanitized real responses as fixtures and add a replay test through the full adapter. That is worth more than any new feature because it converts a plausible contract into a verified one.
+
+Second, I would add conditional GETs if the portal exposes `ETag` or `Last-Modified`, and replace purely time-based staleness with revalidation plus a change signal. Third, I would move the snapshot into SQLite for indexed filtering and a cleaner path to PostGIS at scale, while keeping the in-process cache for hot reads. Fourth, I would add Prometheus metrics and a small alert set (breaker open, login failures, stale age, parse failures). Finally, if the product direction is real, I would add a map, anomaly drill-downs, and saved views to the console, and replace the no-build chart with a proper chart library. I would also run a load test against a rate-limited mock to validate the concurrency and retry settings.
+
+## 4. My real mistake
+
+The most instructive mistake was in the duplicate-meter rule. My first mock inserted the duplicate `MTR-0004` row *before* the authoritative row. The deduplication logic kept the first complete row, so the API reported the duplicate's `ACTIVE` status and silently hid that the primary row said `FAULT`. The contract test caught it: I expected two faults, got one. The fix was not just to move the insert; I made the ordering rule explicit, kept the duplicate/conflict flags, and added a test that asserts the surviving record is the primary `FAULT` row. It was a good reminder that "deduplicate" is a data-quality decision, not a neutral cleanup, and that a test which encodes the expected business outcome is more valuable than one that merely asserts a 200.
+
+A larger process mistake sits behind that bug: I started building the adapter before confirming that I could reach the real portal. Once I found I could not, the mock became both a test harness and a substitute for evidence. I think the pivot was the right engineering call under the constraint, but I should have surfaced the constraint at the very start and scoped `PROTOCOL.md` as an assumed contract from day one. That would have reduced the risk of the mock quietly becoming "the truth."
+
+## 5. How I would criticise my own submission
+
+The engineering habits are solid: the boundary between fetch/parse/normalize/serve is clean, the failure modes are explicit, the tests cover the cases that actually bite (reauth concurrency, data quirks, hierarchy defects), and the docs are written for someone with zero context. The UI is a genuine product surface, not a toy, and it exercises the API rather than bypassing it.
+
+The weakness is evidence. The mock is detailed, but it is still my model of the portal. Tests prove internal consistency and resilience against my own contract; they cannot prove fidelity to the real service. The `PROTOCOL.md` is strong on hypotheses and explicit about unknowns, but a reviewer should discount any claim marked **ASSUMED** until it is verified. I also spent time on the web console that, under the 4-6 hour cut line, would have been better spent on real recon and a smaller, sharper adapter. The system is single-process by design, has no per-user auth, no metrics exporter, and no load test; those are acceptable omissions only because they are written down. If I were grading it, I would say: excellent craft and communication, uncertain external validity, and a scope that is slightly wider than the evidence supports.

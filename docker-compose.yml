@@ -1,0 +1,54 @@
+services:
+  mock-portal:
+    build: .
+    image: urja-meter-ops:local
+    command:
+      - uvicorn
+      - mock_portal.app:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "9000"
+    environment:
+      URJA_USERNAME: operator@urja.example
+      URJA_PASSWORD: urja-demo-pass
+      MOCK_SESSION_TTL_SECONDS: "900"
+      MOCK_CONTROL_ENABLED: "true"
+    ports:
+      - "9000:9000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/health')"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    image: urja-meter-ops:local
+    environment:
+      ENVIRONMENT: docker
+      URJA_BASE_URL: http://mock-portal:9000
+      URJA_USERNAME: operator@urja.example
+      URJA_PASSWORD: urja-demo-pass
+      URJA_TIMEZONE: Asia/Kolkata
+      ADMIN_API_KEY: change-me-demo-key
+      CORS_ORIGINS: "http://localhost:8000,http://127.0.0.1:8000"
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      mock-portal:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"
+      interval: 10s
+      timeout: 3s
+      retries: 5

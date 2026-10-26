@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "urja-meter-ops-api"
+version = "1.0.0"
+description = "Read-only, resilient REST API in front of the legacy Urja Meter Ops portal."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Flock Energy take-home" }]
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "uvicorn[standard]>=0.32,<1.0",
+  "httpx>=0.28,<1.0",
+  "selectolax>=0.3.27,<1.0",
+  "pydantic>=2.10,<3.0",
+  "pydantic-settings>=2.6,<3.0",
+  "python-multipart>=0.0.18,<1.0",
+  "tzdata>=2024.2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9.0",
+  "pytest-asyncio>=0.25,<1.0",
+  "respx>=0.22,<1.0",
+  "ruff>=0.8,<1.0",
+  "mypy>=1.13,<2.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "mock_portal"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+  "live: opt-in read-only smoke tests against a real portal (set RUN_LIVE_TESTS=1)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["app", "mock_portal", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "RUF"]
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "mock_portal"]
+
+[tool.ruff.lint.per-file-ignores]
+"mock_portal/app.py" = ["E501"]
+"mock_portal/data.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_unused_ignores = false
+disallow_untyped_defs = false
+exclude = ["tests/fixtures"]

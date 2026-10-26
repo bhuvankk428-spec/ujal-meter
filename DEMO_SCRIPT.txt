@@ -1,0 +1,316 @@
+URJA METER OPS API - 5 MINUTE DEMO SCRIPT
+=========================================
+
+Target runtime: 4:50 to 4:58
+Hard stop: 5:00
+Pace: about 145-155 words per minute
+Record at 1080p, 30 fps, with a clear cursor and readable terminal font (16-18 pt).
+
+This file has four parts:
+1. What to prepare before recording
+2. Screen layout and run of show
+3. Exact narration and screen actions
+4. Failure fallbacks and claims to avoid
+
+
+1. BEFORE RECORDING
+-------------------
+
+Start both processes from D:\flork using HOW_TO_RUN.md:
+
+  Terminal 1:
+  .\.venv\Scripts\python.exe -m uvicorn mock_portal.app:app --host 127.0.0.1 --port 9000
+
+  Terminal 2:
+  .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+Then do this preparation:
+
+- Open http://127.0.0.1:8000/ and wait until the status pill says "Portal ready".
+- Click the Fleet, Hierarchy, and Health tabs once so the pages are warm.
+- Return to the Fleet tab.
+- Do NOT open meter MTR-0009. It will be used for the re-auth demo.
+- Open http://127.0.0.1:8000/docs in a second browser tab.
+- Keep a terminal window open at D:\flork, with large text and a short prompt.
+- Keep a second terminal tab ready for pytest.
+- Turn off notifications, browser extensions, and any personal tabs.
+- Close the browser DevTools panel.
+- Hide the mouse until you need it.
+- Do one 20-second test recording to check audio level and text size.
+
+Recommended browser tabs, left to right:
+  1. Dashboard: http://127.0.0.1:8000/
+  2. API docs: http://127.0.0.1:8000/docs
+  3. Terminal: D:\flork
+
+Useful terminal commands, already tested:
+
+  curl.exe -s -i http://127.0.0.1:8000/api/v1/meters/MTR-9999
+
+  curl.exe -s -X POST http://127.0.0.1:9000/_control/expire
+
+  curl.exe -s -o NUL -w "HTTP %{http_code}\n" http://127.0.0.1:8000/api/v1/meters/MTR-0009
+
+  curl.exe -s http://127.0.0.1:9000/_control/stats
+
+  .\.venv\Scripts\python.exe -m pytest -q
+
+Important: keep the real portal limitation visible in the video. The mock is a
+deliberate test double, not a claim that the real portal was accessed.
+
+
+2. SCREEN LAYOUT AND RUN OF SHOW
+--------------------------------
+
+  0:00-0:24  Intro: what it is and the constraint
+  0:24-0:52  The mock-portal decision and PROTOCOL.md
+  0:52-1:22  Architecture and anti-corruption boundary
+  1:22-1:57  Fleet dashboard, KPIs, search, filters, cache
+  1:57-2:32  Meter detail, consumption chart, quality flags
+  2:32-2:57  Hierarchy tree and reported defects
+  2:57-3:22  Health, readiness, breaker, cache maintenance
+  3:22-3:47  OpenAPI contract and problem+json errors
+  3:47-4:27  Expired-session recovery demo
+  4:27-4:50  Tests, trade-offs, close
+  4:50-4:58  Optional buffer, then stop
+
+Do not rush the terminal section. If you fall behind, shorten the dashboard
+filter demonstration and the API docs section. Never cut the mock disclaimer or
+the re-authentication proof.
+
+
+3. EXACT NARRATION AND SCREEN ACTIONS
+-------------------------------------
+
+Do not read the bracketed directions aloud.
+
+
+[0:00-0:24] INTRO
+
+SCREEN: Dashboard, Fleet tab, top of page. Cursor parked away from the table.
+
+SAY:
+"Hi, I'm [Your Name]. This is my Urja Meter Ops API: a read-only, resilient
+REST API and operations console in front of a legacy meter portal. Clients get
+clean, typed JSON. They never see the portal's HTML, cookies, credentials, or
+messy data. Over the next five minutes I'll show the product, the API contract,
+the resilience behavior, and the trade-offs."
+
+
+[0:24-0:52] THE MOCK PORTAL DECISION
+
+SCREEN: Stay on the dashboard. Briefly move the cursor toward the "Portal
+ready" chip. Optionally cut to PROTOCOL.md for three seconds, then back.
+
+SAY:
+"One important constraint: the real portal URL and credentials were not
+available in this environment. I did not fake a successful integration.
+Instead, I built a deterministic mock portal that reproduces the legacy shape I
+designed for: CSRF form login, cookie sessions, three different expiry signals,
+a bulk CSV export, server-rendered tables, and a JSON consumption endpoint.
+PROTOCOL.md marks exactly what is observed in the mock and what still needs
+verification against the real portal. The adapter points at the real system
+with three environment variables."
+
+CUT: If showing PROTOCOL.md, show the provenance box at the top, not the whole
+document.
+
+
+[0:52-1:22] ARCHITECTURE
+
+SCREEN: Show the architecture diagram in README.md (or the project tree). If
+using an editor, zoom so the app/ and portal/ boundaries are readable.
+
+SAY:
+"Under the hood, this is an anti-corruption layer. FastAPI handles validation,
+pagination, and RFC 9457 problem+json errors. The service layer owns the
+bulk-first meter snapshot, the hierarchy builder, and a stale-while-revalidate
+cache. The portal layer owns one shared session, expiry detection, bounded
+retries, a concurrency limit, and a circuit breaker. Parsers turn HTML, CSV, and
+JSON into untouched strings. Normalizers are the only path to a public model.
+Anything lossy becomes a quality flag, not a silent repair."
+
+
+[1:22-1:57] FLEET DASHBOARD
+
+SCREEN: Dashboard. Point to the four KPI cards, then the quality pills. Type
+"jayanagar" into the search box slowly, pause, then clear it. Do not spend time
+on every column.
+
+SAY:
+"Here is the console. It talks only to the public API. The mock has twenty-four
+unique meters: seventeen active, two faults, and fourteen flagged records.
+Those flags are deliberate: one duplicate id, one missing serial, three missing
+coordinates, and two unknown statuses. The goal is to surface the portal's
+condition, not hide it. I can search by name, or filter by status and zone. The
+cache chip shows HIT, MISS, or STALE, with the age, so a consumer can decide
+whether the data is fresh enough."
+
+ACTION: After clearing the search, click the Status dropdown once, show
+"Faults", but do not necessarily select it. This keeps the demo moving.
+
+
+[1:57-2:32] METER DETAIL AND CONSUMPTION
+
+SCREEN: Click the row for MTR-0014, "Sarjapur Road". The drawer opens. Point to
+the hierarchy path, the summary numbers, and the chart gaps.
+
+SAY:
+"I'll open Sarjapur Road. The drawer combines the cached bulk record with
+detail-only fields and a hierarchy path. The chart is the important quality
+view: this meter has missing consumption points, and they appear as gaps, not
+as zeros. The summary counts them. The API returns the same information in
+typed JSON, with the source and the quality flags. If a date or number were
+ambiguous, it would be flagged here too."
+
+ACTION: Move the cursor over one missing point in the chart, then close the
+drawer with the X or Escape.
+
+
+[2:32-2:57] HIERARCHY
+
+SCREEN: Click "Hierarchy" in the top navigation. Point to the defect counters,
+then scan the tree. Do not expand everything.
+
+SAY:
+"The hierarchy tab shows the tree and the defects found while building it.
+This dataset contains an orphan, a cycle, a duplicate node, and a node with two
+parents. The builder attaches orphans under Unassigned, breaks cycles
+deterministically, keeps the first parent, and counts every decision. The
+nested tree is for humans. The flat node list is for clients that need parent
+ids."
+
+
+[2:57-3:22] HEALTH AND READINESS
+
+SCREEN: Click "Health". Point to Status, Portal, Session, Circuit breaker, Cache
+entries, and the cache-maintenance form.
+
+SAY:
+"Health separates liveness from readiness. Liveness never calls the portal.
+Readiness checks the portal, the session, the circuit breaker, and the cache.
+Here everything is ready, the breaker is closed, and the session is
+authenticated. Cache refresh is protected by an API key, and the server-side
+portal credentials are never exposed to the browser. That separation is
+deliberate."
+
+
+[3:22-3:47] API CONTRACT AND ERRORS
+
+SCREEN: Switch to the /docs tab. Show the endpoint list briefly. Expand GET
+/api/v1/meters/{meter_id}, then point to the 200, 404, and 503 responses.
+Do not scroll through the entire schema.
+
+SAY:
+"FastAPI generates the contract at /docs, and the committed openapi.json is
+checked in CI. I documented every endpoint, the admin API-key security scheme,
+and the shared problem+json error shape. A missing meter returns 404 with a
+request id. Parser failures are 502, timeouts are 504, and portal or breaker
+failures are 503 with Retry-After."
+
+
+[3:47-4:27] EXPIRED-SESSION RECOVERY
+
+SCREEN: Switch to the terminal at D:\flork. Run the commands in this order.
+Pause for one second after each output.
+
+  curl.exe -s -i http://127.0.0.1:8000/api/v1/meters/MTR-9999
+
+  curl.exe -s -X POST http://127.0.0.1:9000/_control/expire
+
+  curl.exe -s -o NUL -w "HTTP %{http_code}\n" http://127.0.0.1:8000/api/v1/meters/MTR-0009
+
+  curl.exe -s http://127.0.0.1:9000/_control/stats
+
+SAY:
+"Now the part I care about most: session recovery. First, the error contract:
+an unknown meter returns problem+json, not an HTML error page. Next, I'll
+expire the mock session, then request MTR-0009, which is not in the detail
+cache. The API detects the expiry, re-authenticates once, and retries the
+original request. The client still gets a 200 and never sees a login. The mock
+statistics show successful_logins increased by exactly one. The test suite
+also fires ten concurrent requests at an expired session and asserts exactly
+one login, so this is proven under contention, not just in the happy path."
+
+ACTION: Point to `"successful_logins"` in the final stats output. If the number
+is already greater than one, say "increased by exactly one for this request"
+rather than claiming the absolute value is one.
+
+NOTE: The expire and stats endpoints exist only in the mock portal. They are
+not part of the public API.
+
+
+[4:27-4:50] TESTS, TRADE-OFFS, CLOSE
+
+SCREEN: Switch to the second terminal and run:
+
+  .\.venv\Scripts\python.exe -m pytest -q
+
+While it runs, keep the previous terminal visible if possible. Show the final
+"77 passed, 1 skipped" line.
+
+SAY:
+"Finally, the project has seventy-seven tests plus one opt-in live smoke test.
+They cover parsing quirks, cache semantics, hierarchy defects, retry and breaker
+behavior, API error shapes, OpenAPI drift, and exactly-one re-authentication.
+I stopped short of SQLite, Redis, and multi-tenant auth because the brief is
+read-only and single process. Those are documented trade-offs, not accidental
+omissions. The result is a runnable adapter with a real failure model and honest
+boundaries. Thanks for watching."
+
+
+[4:50-5:00] OPTIONAL BUFFER
+
+SCREEN: Hold on the passing test output and dashboard tab. Do not add new
+claims. If you are at 4:50, say only:
+
+"That's the demo."
+
+Then stop the recording.
+
+
+4. FAILURE FALLBACKS AND CLAIMS TO AVOID
+----------------------------------------
+
+IF THE DASHBOARD DOES NOT LOAD:
+- Check http://127.0.0.1:9000/health first, then http://127.0.0.1:8000/ready.
+- If needed, use docs/fleet.png as a still image and keep narrating. Do not
+  spend video time debugging.
+
+IF THE RE-AUTH DEMO DOES NOT SHOW A NEW LOGIN:
+- MTR-0009 may already be cached. Restart the API, warm only the dashboard, and
+  use MTR-0009 again. Do not switch to a meter you already opened.
+- If the mock control endpoint is disabled, skip the live proof and say:
+  "The integration test covers this with ten concurrent requests and exactly
+  one login." Do not pretend the live demo ran.
+
+IF TESTS FAIL:
+- Do not hide it. Say: "The last verified run was seventy-seven passing and one
+  skipped. I won't claim a green run I did not see." Use a saved terminal
+  screenshot only if it is clearly labeled as the earlier verified run.
+
+DO SAY:
+- "The real portal was not available; this is a mock-backed adapter."
+- "Read-only: GET plus the internal login POST."
+- "One shared operator session; single-process cache."
+- "Quality flags instead of silent repairs."
+- "The committed OpenAPI schema is checked for drift in CI."
+
+DO NOT SAY:
+- "This is connected to the real Urja portal."
+- "This is production-ready."
+- "Zero defects" or "all data is clean."
+- "It scales horizontally"; the cache and session are intentionally
+  single-process.
+- "The Docker build was verified here"; it was not, because no Docker engine
+  was available in this environment.
+
+FINAL CHECK BEFORE YOU HIT RECORD:
+[ ] Mock on 9000 and API on 8000 are both running.
+[ ] Dashboard says "Portal ready".
+[ ] MTR-0009 has not been opened.
+[ ] /docs tab is loaded.
+[ ] Terminal commands are tested.
+[ ] Notifications are off.
+[ ] Timer is visible but outside the recorded area.
+[ ] You can say the mock disclaimer without reading it.

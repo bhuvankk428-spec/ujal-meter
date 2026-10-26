@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Read-only operations dashboard for the Urja Meter Ops API."
+    />
+    <title>Urja Meter Ops</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="#fleet" aria-label="Urja Meter Ops home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img">
+              <path
+                d="M13 2 4.8 13.1a.8.8 0 0 0 .64 1.27h4.7L9 22l8.2-11.1a.8.8 0 0 0-.64-1.27h-4.7L13 2Z"
+                fill="currentColor"
+              />
+            </svg>
+          </span>
+          <span>
+            <strong>Urja Meter Ops</strong>
+            <small>Read-only fleet console</small>
+          </span>
+        </a>
+
+        <nav class="tabs" aria-label="Primary">
+          <button class="tab is-active" type="button" data-view="fleet">Fleet</button>
+          <button class="tab" type="button" data-view="hierarchy">Hierarchy</button>
+          <button class="tab" type="button" data-view="health">Health</button>
+        </nav>
+
+        <div class="topbar-actions">
+          <span class="status-chip status-chip--pending" id="statusChip" title="Portal readiness">
+            <span class="dot"></span>
+            <span id="statusChipText">Checking</span>
+          </span>
+          <button class="icon-button" type="button" id="refreshAll" title="Refresh data">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M20 6v5h-5M4 18v-5h5M6.1 9a7 7 0 0 1 11.4-2.2L20 11M4 13l2.5 4.2A7 7 0 0 0 17.9 15"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="sr-only">Refresh</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="view" id="view-fleet" aria-labelledby="fleetTitle">
+          <div class="hero">
+            <div>
+              <p class="eyebrow">Operations overview</p>
+              <h1 id="fleetTitle">Fleet health at a glance</h1>
+              <p class="lede">
+                Normalized meter inventory from the legacy portal, with source defects
+                surfaced instead of hidden.
+              </p>
+            </div>
+            <div class="hero-meta">
+              <span class="cache-pill" id="fleetCache">cache -</span>
+              <span class="muted" id="fleetFetched">not loaded</span>
+            </div>
+          </div>
+
+          <div class="kpis" id="kpis">
+            <article class="kpi">
+              <span class="kpi-label">Total meters</span>
+              <strong class="kpi-value" id="kpiTotal">-</strong>
+              <span class="kpi-foot" id="kpiZones">- zones</span>
+            </article>
+            <article class="kpi">
+              <span class="kpi-label">Active</span>
+              <strong class="kpi-value kpi-value--good" id="kpiActive">-</strong>
+              <span class="kpi-foot" id="kpiInactive">- inactive</span>
+            </article>
+            <article class="kpi">
+              <span class="kpi-label">Faults</span>
+              <strong class="kpi-value kpi-value--bad" id="kpiFault">-</strong>
+              <span class="kpi-foot" id="kpiUnknown">- unknown</span>
+            </article>
+            <article class="kpi">
+              <span class="kpi-label">Flagged records</span>
+              <strong class="kpi-value kpi-value--warn" id="kpiFlagged">-</strong>
+              <span class="kpi-foot" id="kpiCoords">- with coordinates</span>
+            </article>
+          </div>
+
+          <div class="panel" id="fleetPanel">
+            <div class="toolbar">
+              <label class="field field--search">
+                <span>Search</span>
+                <input
+                  id="searchInput"
+                  type="search"
+                  placeholder="Meter id, serial, name or zone"
+                  autocomplete="off"
+                  maxlength="100"
+                />
+              </label>
+              <label class="field">
+                <span>Status</span>
+                <select id="statusFilter">
+                  <option value="">All statuses</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                  <option value="FAULT">Fault</option>
+                  <option value="UNKNOWN">Unknown</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Zone</span>
+                <select id="zoneFilter">
+                  <option value="">All zones</option>
+                </select>
+              </label>
+              <label class="field field--compact">
+                <span>Rows</span>
+                <select id="pageSize">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="table-status">
+              <span id="fleetMeta">Loading meters...</span>
+              <span class="quality-inline" id="fleetQuality"></span>
+            </div>
+
+            <div class="table-wrap">
+              <table class="meters-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Meter</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Zone</th>
+                    <th scope="col">Last seen</th>
+                    <th scope="col" class="num">Last reading</th>
+                    <th scope="col" class="num">Flags</th>
+                  </tr>
+                </thead>
+                <tbody id="metersBody"></tbody>
+              </table>
+            </div>
+
+            <div class="pager">
+              <button class="button button--ghost" type="button" id="prevPage">
+                Previous
+              </button>
+              <span class="muted" id="pageLabel">Page 1</span>
+              <button class="button button--ghost" type="button" id="nextPage">
+                Next
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-hierarchy" hidden aria-labelledby="hierarchyTitle">
+          <div class="hero">
+            <div>
+              <p class="eyebrow">Source topology</p>
+              <h1 id="hierarchyTitle">Network hierarchy</h1>
+              <p class="lede">
+                Orphans and cycle-break nodes are attached to a synthetic
+                <code>__unassigned__</code> branch and flagged. Nothing is silently dropped.
+              </p>
+            </div>
+            <div class="hero-meta">
+              <span class="cache-pill" id="hierarchyCache">cache -</span>
+              <span class="muted" id="hierarchyFetched">not loaded</span>
+            </div>
+          </div>
+
+          <div class="quality-grid" id="hierarchyQuality">
+            <article class="quality-card">
+              <span>Orphans</span>
+              <strong id="hqOrphans">-</strong>
+            </article>
+            <article class="quality-card">
+              <span>Cycles</span>
+              <strong id="hqCycles">-</strong>
+            </article>
+            <article class="quality-card">
+              <span>Duplicate ids</span>
+              <strong id="hqDuplicates">-</strong>
+            </article>
+            <article class="quality-card">
+              <span>Multiple parents</span>
+              <strong id="hqMultiParents">-</strong>
+            </article>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Tree</h2>
+              <div class="legend">
+                <span><i class="flag-dot flag-dot--orphan"></i>orphan</span>
+                <span><i class="flag-dot flag-dot--cycle"></i>cycle</span>
+                <span><i class="flag-dot flag-dot--dup"></i>duplicate</span>
+                <span><i class="flag-dot flag-dot--synthetic"></i>synthetic</span>
+              </div>
+            </div>
+            <div class="tree-wrap" id="hierarchyTree">
+              <p class="empty">Loading hierarchy...</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-health" hidden aria-labelledby="healthTitle">
+          <div class="hero">
+            <div>
+              <p class="eyebrow">Operations</p>
+              <h1 id="healthTitle">Service health</h1>
+              <p class="lede">
+                Portal readiness, session state and cache maintenance. The portal itself is
+                never exposed to clients.
+              </p>
+            </div>
+            <div class="hero-meta">
+              <span class="cache-pill" id="healthCache">live probe</span>
+              <button class="button button--ghost" type="button" id="recheckHealth">
+                Re-check
+              </button>
+            </div>
+          </div>
+
+          <div class="health-grid">
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Readiness</h2>
+                <span class="status-chip status-chip--pending" id="readyChip">
+                  <span class="dot"></span><span id="readyChipText">Checking</span>
+                </span>
+              </div>
+              <dl class="readiness" id="readinessList">
+                <div><dt>Status</dt><dd id="rdStatus">-</dd></div>
+                <div><dt>Portal</dt><dd id="rdPortal">-</dd></div>
+                <div><dt>Session</dt><dd id="rdSession">-</dd></div>
+                <div><dt>Circuit breaker</dt><dd id="rdBreaker">-</dd></div>
+                <div><dt>Cache entries</dt><dd id="rdEntries">-</dd></div>
+                <div><dt>Refreshes in flight</dt><dd id="rdInflight">-</dd></div>
+                <div><dt>Detail</dt><dd id="rdDetail">-</dd></div>
+                <div><dt>Version</dt><dd id="rdVersion">-</dd></div>
+              </dl>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <h2>Cache maintenance</h2>
+              </div>
+              <p class="muted">
+                Invalidates and re-warms the meter and hierarchy caches. Requires the
+                <code>X-API-Key</code> configured on the server.
+              </p>
+              <form class="admin-form" id="adminForm">
+                <label class="field">
+                  <span>Admin API key</span>
+                  <input
+                    id="adminKey"
+                    type="password"
+                    placeholder="X-API-Key"
+                    autocomplete="off"
+                  />
+                </label>
+                <button class="button button--primary" type="submit" id="adminButton">
+                  Refresh caches
+                </button>
+              </form>
+              <div class="admin-result" id="adminResult" hidden></div>
+            </article>
+
+            <article class="panel panel--wide">
+              <div class="panel-head">
+                <h2>Endpoints</h2>
+              </div>
+              <div class="endpoint-list">
+                <a href="/docs"><code>GET /docs</code><span>Swagger UI</span></a>
+                <a href="/reference"><code>GET /reference</code><span>Scalar reference</span></a>
+                <a href="/openapi.json"><code>GET /openapi.json</code><span>OpenAPI schema</span></a>
+                <a href="/api/v1/meters?page_size=2"
+                  ><code>GET /api/v1/meters</code><span>Meter inventory</span></a
+                >
+                <a href="/api/v1/hierarchy"
+                  ><code>GET /api/v1/hierarchy</code><span>Network tree</span></a
+                >
+                <a href="/api/v1/stats/summary"
+                  ><code>GET /api/v1/stats/summary</code><span>Fleet aggregates</span></a
+                >
+                <a href="/health"><code>GET /health</code><span>Liveness</span></a>
+                <a href="/ready"><code>GET /ready</code><span>Portal readiness</span></a>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>Urja Meter Ops API</span>
+        <span class="muted">Read-only adapter over a legacy portal</span>
+        <span class="footer-meta" id="footerStamp"></span>
+      </footer>
+    </div>
+
+    <div class="overlay" id="overlay" hidden></div>
+
+    <aside
+      class="drawer"
+      id="drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="drawerTitle"
+      hidden
+    >
+      <div class="drawer-head">
+        <div>
+          <p class="eyebrow" id="drawerId">Meter detail</p>
+          <h2 id="drawerTitle">Loading...</h2>
+        </div>
+        <button class="icon-button" type="button" id="drawerClose" title="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="m6 6 12 12M18 6 6 18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="sr-only">Close</span>
+        </button>
+      </div>
+      <div class="drawer-body" id="drawerBody">
+        <p class="empty">Loading meter...</p>
+      </div>
+    </aside>
+
+    <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+  </body>
+</html>
